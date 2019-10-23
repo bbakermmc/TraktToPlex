@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
+using Hangfire;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -41,6 +42,17 @@ namespace TraktToPlex.Controllers
             }
 
             var traktRedirectUrl = HttpUtility.UrlEncode(Url.AbsoluteAction("TraktReturn", "Home"));
+            
+            if (_config["TraktConfig:ClientId"].IsNullOrWhiteSpace() || _config["TraktConfig:ClientId"].IsNullOrWhiteSpace())
+            {
+                throw new Exception("Trakt Config ClientId is not setup.");
+            }
+            
+            if (_config["TraktConfig:ClientSecret"].IsNullOrWhiteSpace() || _config["TraktConfig:ClientSecret"].IsNullOrWhiteSpace())
+            {
+                throw new Exception("Trakt Config ClientSecret is not setup.");
+            }
+            
             ViewData["TraktUrl"] = $"https://trakt.tv/oauth/authorize?client_id={_config["TraktConfig:ClientId"]}&redirect_uri={traktRedirectUrl}&response_type=code";
             return View(viewModel);
         }
@@ -77,6 +89,16 @@ namespace TraktToPlex.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        public IActionResult MigrationHangfire(string plexUrl)
+        {
+            var plexKey = HttpContext.Session.GetString("PlexKey");
+            var traktKey = HttpContext.Session.GetString("TraktKey");
+            
+            BackgroundJob.Enqueue(() => HangfireVersion.Execute(null, plexKey, plexUrl,_config["PlexConfig:ClientSecret"], traktKey,_config["TraktConfig:ClientId"],_config["TraktConfig:ClientSecret"]));
+            
+            return RedirectToAction(nameof(Index));
+        }
+        
         public async Task<IActionResult> TraktReturn()
         {
             if (Request.Query.ContainsKey("code"))

@@ -10,9 +10,23 @@
     #migrationContainer div {
         margin: 32px;
     }
+    
     #migrationStatus {
         min-width: 400px;
         min-height: 200px;
+    }
+    
+    .textareaContainer {
+    	display: block;
+    	border: 3px solid #38c;
+    	padding: 10px;
+    }
+    
+    textarea { 
+      width: 100%; 
+      margin: 0; 
+      padding: 0; 
+      border-width: 0; 
     }
 </style>
 <div class="text-center">
@@ -68,7 +82,8 @@
             </div>
             <div>
                 <button onclick="startMigration();">Start Migration</button>
-                <div>
+                <button onclick="startMigrationHangfire();">Start Migration Hangfire</button>
+                <div class="textareaContainer">
                     <textarea id="migrationStatus" readonly>Ready</textarea>
                 </div>
             </div>
@@ -77,3 +92,10 @@
         </div>
     }
 </div>
+
+<script>
+function startMigrationHangfire() {
+    var plexServer = document.getElementById('PlexServer').value;
+    window.location = '@Url.Action("MigrationHangfire", "Home")' + "?plexUrl=" +plexServer;
+}
+</script>

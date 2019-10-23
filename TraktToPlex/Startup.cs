@@ -2,12 +2,16 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Hangfire;
+using Hangfire.Console;
+using Hangfire.LiteDB;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TraktToPlex.Hubs;
@@ -27,6 +31,13 @@ namespace TraktToPlex
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddHangfire(config =>
+            {
+                config.UseLiteDbStorage();
+                config.UseConsole();
+            });
+            services.AddHangfireServer();
+            
             services.AddDistributedMemoryCache();
 
             services.Configure<CookiePolicyOptions>(options =>
@@ -70,6 +81,8 @@ namespace TraktToPlex
             app.UseCookiePolicy();
 
             app.UseSignalR(routes => { routes.MapHub<MigrationHub>("/migration"); });
+            
+            app.UseHangfireDashboard();
 
             app.UseMvc(routes =>
             {

@@ -23,12 +23,31 @@ namespace TraktToPlex.Plex
         {
             _config = config;
             _clientId = _config["PlexConfig:ClientSecret"];
+            if (_clientId.IsNullOrWhiteSpace() || _clientId.IsNullOrEmpty())
+            {
+                throw new Exception("Config for Plex is not setup.  Please see: https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/");
+            }
             _httpClient.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("application/json"));
             _httpClient.DefaultRequestHeaders.Add("X-Plex-Product", "Trakt To Plex");
             _httpClient.DefaultRequestHeaders.Add("X-Plex-Platform", "Web");
             _httpClient.DefaultRequestHeaders.Add("X-Plex-Device", "Trakt To Plex (Web)");
             _httpClient.DefaultRequestHeaders.Add("X-Plex-Client-Identifier", _clientId);
         }
+        
+        public PlexClient(string plexClientSecret)
+        {
+            _clientId = plexClientSecret;
+            if (_clientId.IsNullOrWhiteSpace() || _clientId.IsNullOrEmpty())
+            {
+                throw new Exception("Config for Plex is not setup.  Please see: https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/");
+            }
+            _httpClient.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("application/json"));
+            _httpClient.DefaultRequestHeaders.Add("X-Plex-Product", "Trakt To Plex");
+            _httpClient.DefaultRequestHeaders.Add("X-Plex-Platform", "Web");
+            _httpClient.DefaultRequestHeaders.Add("X-Plex-Device", "Trakt To Plex (Web)");
+            _httpClient.DefaultRequestHeaders.Add("X-Plex-Client-Identifier", _clientId);
+        }
+        
         public async Task<OAuthResponse> GetOAuthUrl(string redirectUrl)
         {
             using (var request = new HttpRequestMessage(HttpMethod.Post, "https://plex.tv/api/v2/pins.json?strong=true"))

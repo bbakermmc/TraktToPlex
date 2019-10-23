@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
@@ -20,12 +21,21 @@ namespace TraktToPlex.Hubs
         private readonly IConfiguration _config;
         private readonly PlexClient _plexClient;
         private readonly TraktClient _traktClient;
+        private readonly string _filePath;
 
         public MigrationHub(IConfiguration config, PlexClient plexClient)
         {
             _config = config;
             _plexClient = plexClient;
             _traktClient = new TraktClient(_config["TraktConfig:ClientId"], _config["TraktConfig:ClientSecret"]);
+            _filePath = null;
+        }
+        
+        public MigrationHub(PlexClient plexClient, TraktClient traktClient, string filePath)
+        {
+            _plexClient = plexClient;
+            _traktClient = traktClient;
+            _filePath = filePath;
         }
 
         public async Task StartMigration(string traktKey, string plexKey, string plexUrl)
@@ -158,7 +168,17 @@ namespace TraktToPlex.Hubs
 
         private async Task ReportProgress(string progress)
         {
-            await Clients.Caller.SendAsync("UpdateProgress", $"[{DateTime.Now}]: {progress}");
+            if(_filePath == null)
+            {
+                await Clients.Caller.SendAsync("UpdateProgress", $"[{DateTime.Now}]: {progress}");
+            }
+            else
+            {
+                using (var tw = new StreamWriter(_filePath, true))
+                {
+                    tw.WriteLine($"[{DateTime.Now}] {progress}");
+                }
+            }
         }
     }
 }
