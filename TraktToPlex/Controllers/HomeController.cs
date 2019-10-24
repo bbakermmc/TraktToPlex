@@ -94,7 +94,7 @@ namespace TraktToPlex.Controllers
             var plexKey = HttpContext.Session.GetString("PlexKey");
             var traktKey = HttpContext.Session.GetString("TraktKey");
             
-            BackgroundJob.Enqueue(() => HangfireVersion.Execute(null, plexKey, plexUrl,_config["PlexConfig:ClientSecret"], traktKey,_config["TraktConfig:ClientId"],_config["TraktConfig:ClientSecret"]));
+            BackgroundJob.Enqueue(() => HangfireVersion.Execute(null, plexKey, plexUrl,_config["PlexConfig:ClientSecret"], traktKey,_config["TraktConfig:ClientId"],_config["TraktConfig:ClientSecret"], _config["SendGridApiKey"]));
             
             return RedirectToAction(nameof(Index));
         }

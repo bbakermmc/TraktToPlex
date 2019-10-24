@@ -1,6 +1,8 @@
 using System;
+using System.ComponentModel;
 using System.IO;
 using System.Threading.Tasks;
+using Hangfire;
 using Hangfire.Console;
 using Hangfire.Server;
 using Microsoft.Extensions.Configuration;
@@ -13,7 +15,9 @@ namespace TraktToPlex
 {
     public static class HangfireVersion
     {
-        public static async Task Execute(PerformContext ctx, string plexKey, string plexUrl, string plexClientSecret, string traktKey, string traktClientId, string traktClientSecret)
+        [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
+        [DisplayName("Plex Sync")]
+        public static async Task Execute(PerformContext ctx, string plexKey, string plexUrl, string plexClientSecret, string traktKey, string traktClientId, string traktClientSecret, string emailApiKey)
         {
             /*ctx.SetTextColor(ConsoleTextColor.Yellow);
             ctx.WriteLine("Plex");
@@ -21,16 +25,18 @@ namespace TraktToPlex
             ctx.WriteLine($"Key: {plexKey}");
             ctx.ResetTextColor();*/
             
-            var _plexClient = new PlexClient(plexClientSecret);
             
-            var _traktClient = new TraktClient(traktClientId, traktClientSecret);
             
-            _traktClient.Authorization = TraktAuthorization.CreateWith(traktKey);
-            
-            var guid = Guid.NewGuid().ToString();
+            var plexSync = new PlexSync(plexKey, plexUrl, plexClientSecret, traktKey, traktClientId, traktClientSecret, emailApiKey);
+            await plexSync.SyncToPlex();
+
+
+            /*var guid = Guid.NewGuid().ToString();
 
             var file = $"D:\\{guid}.txt";
             var sw = new StreamWriter($"{file}", true);
+            
+            
             
             using (var tw = sw)
             {
@@ -38,8 +44,8 @@ namespace TraktToPlex
                 tw.WriteLine($"[{DateTime.Now}] TraktKey: {traktKey}");
             }
 
-            var migration = new MigrationHub(_plexClient, _traktClient, file);
-            await migration.StartMigration(traktKey, plexKey, plexUrl);
+            var migration = new MigrationHub(_traktClient, _plexClient, file);
+            await migration.StartMigration(traktKey, plexKey, plexUrl);*/
         }
     }
 }
