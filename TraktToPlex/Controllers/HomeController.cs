@@ -32,7 +32,8 @@ namespace TraktToPlex.Controllers
             {
                 PlexKey = HttpContext.Session.GetString("PlexKey"),
                 TraktKey = HttpContext.Session.GetString("TraktKey"),
-                PlexServerKey = HttpContext.Session.GetString("PlexServerKey")
+                PlexServerKey = HttpContext.Session.GetString("PlexServerKey"),
+                PlexEmailAddress = HttpContext.Session.GetString("PlexEmail")
             };
             if (!string.IsNullOrEmpty(viewModel.PlexKey) && !string.IsNullOrEmpty(viewModel.TraktKey))
             {
@@ -87,6 +88,8 @@ namespace TraktToPlex.Controllers
                 throw new Exception("Plex auth failed.");
             HttpContext.Session.Remove("PlexOauthId");
             HttpContext.Session.SetString("PlexKey", authToken);
+            var email = await _plexClient.GetUserEmail(authToken);
+            HttpContext.Session.SetString("PlexEmail", email);
             return RedirectToAction(nameof(Index));
         }
 
@@ -96,12 +99,26 @@ namespace TraktToPlex.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        public IActionResult MigrationHangfire(string plexUrl)
+        public IActionResult MigrationHangfirePlex(string plexUrl)
         {
             var plexKey = HttpContext.Session.GetString("PlexKey");
             var traktKey = HttpContext.Session.GetString("TraktKey");
+            var plexEmail = HttpContext.Session.GetString("PlexEmail");
             
-            BackgroundJob.Enqueue(() => HangfireVersion.Execute(null, plexKey, plexUrl,_config["PlexConfig:ClientSecret"], traktKey,_config["TraktConfig:ClientId"],_config["TraktConfig:ClientSecret"], _config["SendGridApiKey"]));
+            BackgroundJob.Enqueue(() => HangfireVersion.ExecutePlex(null, plexKey, plexUrl,_config["PlexConfig:ClientSecret"], traktKey,_config["TraktConfig:ClientId"],_config["TraktConfig:ClientSecret"], _config["SendGridApiKey"], plexEmail));
+            RecurringJob.AddOrUpdate(() => HangfireVersion.ExecutePlex(null, plexKey, plexUrl,_config["PlexConfig:ClientSecret"], traktKey,_config["TraktConfig:ClientId"],_config["TraktConfig:ClientSecret"], _config["SendGridApiKey"], plexEmail), Cron.Hourly);
+            
+            return RedirectToAction(nameof(Index));
+        }
+        
+        public IActionResult MigrationHangfireTrakt(string plexUrl)
+        {
+            var plexKey = HttpContext.Session.GetString("PlexKey");
+            var traktKey = HttpContext.Session.GetString("TraktKey");
+            var plexEmail = HttpContext.Session.GetString("PlexEmail");
+            
+            BackgroundJob.Enqueue(() => HangfireVersion.ExecuteTrakt(null, plexKey, plexUrl,_config["PlexConfig:ClientSecret"], traktKey,_config["TraktConfig:ClientId"],_config["TraktConfig:ClientSecret"], _config["SendGridApiKey"], plexEmail));
+            RecurringJob.AddOrUpdate(() => HangfireVersion.ExecuteTrakt(null, plexKey, plexUrl,_config["PlexConfig:ClientSecret"], traktKey,_config["TraktConfig:ClientId"],_config["TraktConfig:ClientSecret"], _config["SendGridApiKey"], plexEmail), Cron.Hourly);
             
             return RedirectToAction(nameof(Index));
         }

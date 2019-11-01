@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -83,7 +84,7 @@ namespace TraktToPlex.Plex.Models
         [JsonProperty("lastViewedAt", NullValueHandling = NullValueHandling.Ignore)]
         public long? LastViewedAt { get; set; }
 
-        public DateTime? LastViewedAtDateTime => LastViewedAt == null ? (DateTime?) null : new DateTime(LastViewedAt.Value);
+        public DateTime? LastViewedAtDateTime => LastViewedAt == null ? (DateTime?) null : UnixTimeStampToDateTime(LastViewedAt.Value);
 
         [JsonProperty("titleSort", NullValueHandling = NullValueHandling.Ignore)]
         public string TitleSort { get; set; }
@@ -93,6 +94,19 @@ namespace TraktToPlex.Plex.Models
 
         [JsonProperty("Collection", NullValueHandling = NullValueHandling.Ignore)]
         public Collection[] Collection { get; set; }
+
+        [NotMapped]
+        public string ImdbId => ExternalProvider.ToLower() == "imdb" ? ExternalProviderId : null;
+        
+        private DateTime? UnixTimeStampToDateTime(long? unixTimeStamp)
+        {
+            if (unixTimeStamp == null) return null;
+            // Unix timestamp is seconds past epoch
+            var dtDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+            dtDateTime = dtDateTime.AddSeconds(unixTimeStamp.Value)
+                .ToLocalTime();
+            return dtDateTime;
+        }
     }
 
     public partial class Collection
@@ -100,4 +114,5 @@ namespace TraktToPlex.Plex.Models
         [JsonProperty("tag")]
         public string Tag { get; set; }
     }
+    
 }

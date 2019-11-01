@@ -94,11 +94,12 @@
                 <p>Choose Plex Server</p>
                 <select id="PlexServer" asp-items="Model.PlexServers"></select>
             </div>
-            @if (!string.IsNullOrEmpty(Model.PlexServerKey))
+            @if (!string.IsNullOrEmpty(Model.PlexKey))
             {
                 <div>
                     <button onclick="startMigration();">Start Migration</button>
-                    <button onclick="startMigrationHangfire();">Start Migration Hangfire</button>
+                    <button onclick="startMigrationHangfire('Plex');">Start Migration (Trakt to Plex) Hangfire</button>
+                    <button onclick="startMigrationHangfire('Trakt');">Start Migration (Plex to Trakt) Hangfire</button>
                 <div class="textareaContainer">
                         <textarea id="migrationStatus" readonly>Ready</textarea>
                     </div>
@@ -111,8 +112,16 @@
 </div>
 
 <script>
-function startMigrationHangfire() {
+function startMigrationHangfire(version) {
     var plexServer = document.getElementById('PlexServer').value;
-    window.location = '@Url.Action("MigrationHangfire", "Home")' + "?plexUrl=" +plexServer;
+    
+    if(version === "Plex")
+    {        
+        window.location = '@Url.Action("MigrationHangfirePlex", "Home")' + "?plexUrl=" + plexServer;
+    }
+    else if(version === "Trakt")
+    {            
+         window.location = '@Url.Action("MigrationHangfireTrakt", "Home")' + "?plexUrl=" + plexServer;
+    }
 }
 </script>

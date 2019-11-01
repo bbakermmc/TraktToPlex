@@ -1,15 +1,9 @@
-using System;
 using System.ComponentModel;
-using System.IO;
 using System.Threading.Tasks;
 using Hangfire;
-using Hangfire.Console;
 using Hangfire.Server;
-using Microsoft.Extensions.Configuration;
-using TraktNet;
-using TraktNet.Objects.Authentication;
-using TraktToPlex.Hubs;
 using TraktToPlex.Plex;
+using TraktToPlex.Trakt;
 
 namespace TraktToPlex
 {
@@ -17,35 +11,18 @@ namespace TraktToPlex
     {
         [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
         [DisplayName("Plex Sync")]
-        public static async Task Execute(PerformContext ctx, string plexKey, string plexUrl, string plexClientSecret, string traktKey, string traktClientId, string traktClientSecret, string emailApiKey)
+        public static async Task ExecutePlex(PerformContext ctx, string plexKey, string plexUrl, string plexClientSecret, string traktKey, string traktClientId, string traktClientSecret, string emailApiKey, string emailSendTo)
         {
-            /*ctx.SetTextColor(ConsoleTextColor.Yellow);
-            ctx.WriteLine("Plex");
-            ctx.WriteLine($"Start Time: {DateTime.Now}");
-            ctx.WriteLine($"Key: {plexKey}");
-            ctx.ResetTextColor();*/
-            
-            
-            
-            var plexSync = new PlexSync(plexKey, plexUrl, plexClientSecret, traktKey, traktClientId, traktClientSecret, emailApiKey);
+            var plexSync = new PlexSync(plexKey, plexUrl, plexClientSecret, traktKey, traktClientId, traktClientSecret, emailApiKey, emailSendTo);
             await plexSync.SyncToPlex();
-
-
-            /*var guid = Guid.NewGuid().ToString();
-
-            var file = $"D:\\{guid}.txt";
-            var sw = new StreamWriter($"{file}", true);
-            
-            
-            
-            using (var tw = sw)
-            {
-                tw.WriteLine($"[{DateTime.Now}] PlexKey: {plexKey}");
-                tw.WriteLine($"[{DateTime.Now}] TraktKey: {traktKey}");
-            }
-
-            var migration = new MigrationHub(_traktClient, _plexClient, file);
-            await migration.StartMigration(traktKey, plexKey, plexUrl);*/
+        }
+        
+        [AutomaticRetry(Attempts = 0, OnAttemptsExceeded = AttemptsExceededAction.Delete)]
+        [DisplayName("Trakt Sync")]
+        public static async Task ExecuteTrakt(PerformContext ctx, string plexKey, string plexUrl, string plexClientSecret, string traktKey, string traktClientId, string traktClientSecret, string emailApiKey, string emailSendTo)
+        {
+            var traktSync = new TraktSync(plexKey, plexUrl, plexClientSecret, traktKey, traktClientId, traktClientSecret, emailApiKey, emailSendTo);
+            await traktSync.SyncToTrakt();
         }
     }
 }

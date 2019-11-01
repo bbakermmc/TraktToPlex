@@ -25,9 +25,10 @@ namespace TraktToPlex.Plex
         private readonly string _traktClientId;
         private readonly string _traktClientSecret;
         private readonly string _traktKey;
+        private readonly string _emailSendTo;
 
         public PlexSync(string plexKey, string plexUrl, string plexClientSecret, string traktKey, string traktClientId,
-            string traktClientSecret, string emailApiKey)
+            string traktClientSecret, string emailApiKey, string emailSendTo)
         {
             _plexKey = plexKey;
             _plexUrl = plexUrl;
@@ -36,6 +37,7 @@ namespace TraktToPlex.Plex
             _traktClientId = traktClientId;
             _traktClientSecret = traktClientSecret;
             _emailApiKey = emailApiKey;
+            _emailSendTo = emailSendTo;
 
             _log = new List<string>();
         }
@@ -55,31 +57,14 @@ namespace TraktToPlex.Plex
                 await MigrateMovies(_plexClient, _traktClient);
                 await MigrateTvShows(_plexClient, _traktClient);
 
-                //await SendEmail("");
+                await SendEmail(_emailSendTo);
             }
             catch (Exception e)
             {
                 throw new Exception(e.Message);
             }
         }
-
-        private async Task SendEmail(string emailAddress)
-        {
-            var client = new SendGridClient(_emailApiKey);
-            var html = "<html><div>{log}</div></html>";
-            var logHtml = _log.Aggregate("", (current, log) => current + log + "<br/>");
-            html = html.Replace("{log}", logHtml);
-            var msg = new SendGridMessage
-            {
-                From = new EmailAddress("noreply@example.com", "Trakt To Plex"),
-                Subject = "Trakt to Plex Results",
-                PlainTextContent = string.Join(Environment.NewLine, _log.ToArray()),
-                HtmlContent = html
-            };
-            msg.AddTo(new EmailAddress(emailAddress));
-            var response = await client.SendEmailAsync(msg);
-        }
-
+        
         private async Task MigrateMovies(PlexClient _plexClient, TraktClient _traktClient)
         {
             await ReportProgress("--------------------------------------------");
@@ -104,7 +89,7 @@ namespace TraktToPlex.Plex
                 foreach (var watchedMovie in traktMovies)
                 {
                     i++;
-                    var plexMovie = plexMovies.FirstOrDefault(x => HasMatchingId(x, watchedMovie.Ids));
+                    var plexMovie = plexMovies.FirstOrDefault(x => HasMatchingIdMovies(x, watchedMovie.Ids));
                     if (plexMovie == null)
                     {
                         await ReportProgress(
@@ -132,7 +117,7 @@ namespace TraktToPlex.Plex
                 foreach (var plexMovie in plexMovies)
                 {
                     i++;
-                    var traktMovie = traktMovies.FirstOrDefault(x => HasMatchingId(plexMovie, x.Ids));
+                    var traktMovie = traktMovies.FirstOrDefault(x => HasMatchingIdMovies(plexMovie, x.Ids));
                     if (traktMovie == null)
                     {
                         await ReportProgress(
@@ -177,7 +162,7 @@ namespace TraktToPlex.Plex
                 {
                     i++;
 
-                    var plexShow = plexShows.FirstOrDefault(x => HasMatchingId(x, watchedShow.Ids));
+                    var plexShow = plexShows.FirstOrDefault(x => HasMatchingIdTVShows(x, watchedShow.Ids));
 
                     if (plexShow == null)
                     {
@@ -233,7 +218,7 @@ namespace TraktToPlex.Plex
                         continue;
                     }
 
-                    var traktShow = traktShows.FirstOrDefault(x => HasMatchingId(plexShow, x.Ids));
+                    var traktShow = traktShows.FirstOrDefault(x => HasMatchingIdTVShows(plexShow, x.Ids));
                     if (traktShow == null)
                     {
                         await ReportProgress(
@@ -273,8 +258,25 @@ namespace TraktToPlex.Plex
         }
 
         #region Helpers
+        
+        private async Task SendEmail(string emailAddress)
+        {
+            var client = new SendGridClient(_emailApiKey);
+            var html = "<html><div>{log}</div></html>";
+            var logHtml = _log.Aggregate("", (current, log) => current + log + "<br/>");
+            html = html.Replace("{log}", logHtml);
+            var msg = new SendGridMessage
+            {
+                From = new EmailAddress("noreply@blackhole.com", "Trakt To Plex"),
+                Subject = "Trakt to Plex Results",
+                PlainTextContent = string.Join(Environment.NewLine, _log.ToArray()),
+                HtmlContent = html
+            };
+            msg.AddTo(new EmailAddress(emailAddress));
+            var response = await client.SendEmailAsync(msg);
+        }
 
-        private bool HasMatchingId(IMediaItem plexItem, ITraktIds traktIds)
+        private bool HasMatchingIdTVShows(IMediaItem plexItem, ITraktIds traktIds)
         {
             switch (plexItem.ExternalProvider)
             {
@@ -292,7 +294,7 @@ namespace TraktToPlex.Plex
             }
         }
 
-        private bool HasMatchingId(IMediaItem plexItem, ITraktMovieIds traktIds)
+        private bool HasMatchingIdMovies(IMediaItem plexItem, ITraktMovieIds traktIds)
         {
             switch (plexItem.ExternalProvider)
             {
@@ -308,20 +310,6 @@ namespace TraktToPlex.Plex
         private async Task ReportProgress(string progress)
         {
             _log.Add($"[{DateTime.Now}] {progress}" + Environment.NewLine);
-            /*using (var tw = new StreamWriter(_memoryStream))
-            {
-                tw.WriteLine($"[{DateTime.Now}] {progress}");
-            }*/
-        }
-
-        private static DateTime? UnixTimeStampToDateTime(long? unixTimeStamp)
-        {
-            if (unixTimeStamp == null) return null;
-            // Unix timestamp is seconds past epoch
-            var dtDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-            dtDateTime = dtDateTime.AddSeconds(unixTimeStamp.Value)
-                .ToLocalTime();
-            return dtDateTime;
         }
 
         #endregion

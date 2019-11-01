@@ -13,6 +13,7 @@ namespace TraktToPlex.Models
         public string TraktKey { get; set; }
         public string PlexKey { get; set; }
         public string PlexServerKey { get; set; }
+        public string PlexEmailAddress { get; set; }
         public List<SelectListItem> PlexServers { get; set; }
     }
 }

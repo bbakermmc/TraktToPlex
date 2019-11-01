@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
@@ -72,6 +74,39 @@ namespace TraktToPlex.Plex
                 var respStr = await resp.Content.ReadAsStringAsync();
                 dynamic respJson = JsonConvert.DeserializeObject(respStr);
                 return respJson.authToken;
+            }
+        }
+        
+        public async Task<string> GetAuthTokenUserPass(string userName, string password)
+        {
+                var plainTextBytes = System.Text.Encoding.UTF8.GetBytes($"{userName}:{password}");
+                var auth = Convert.ToBase64String(plainTextBytes);
+
+                var httpClient = new HttpClient();               
+                    
+                httpClient.DefaultRequestHeaders.Add("Authorization", "Basic " + auth);
+                httpClient.DefaultRequestHeaders.Add("X-Plex-Product", "Trakt To Plex (User/Pass)");
+                httpClient.DefaultRequestHeaders.Add("X-Plex-Platform", "Web");
+                httpClient.DefaultRequestHeaders.Add("X-Plex-Device", "Trakt To Plex (Web)");
+                httpClient.DefaultRequestHeaders.Add("X-Plex-Client-Identifier", Guid.NewGuid().ToString());
+                
+                using (var request = new HttpRequestMessage(HttpMethod.Post, "https://plex.tv/users/sign_in.json"))
+                {
+                    var resp = await httpClient.SendAsync(request);
+                    var respStr = await resp.Content.ReadAsStringAsync();
+                    dynamic respJson = JsonConvert.DeserializeObject(respStr);
+                    return respJson.user.authentication_token;
+                }
+        }
+        public async Task<string> GetUserEmail(string authToken)
+        {
+            SetAuthToken(authToken);
+            using (var request = new HttpRequestMessage(HttpMethod.Get, "https://plex.tv/users/account.json"))
+            {
+                var resp = await _httpClient.SendAsync(request);
+                var respStr = await resp.Content.ReadAsStringAsync();
+                dynamic respJson = JsonConvert.DeserializeObject(respStr);
+                return respJson.user.email;
             }
         }
 
